@@ -1,0 +1,8 @@
+import {saveResponse, tomorrowManila} from './api';
+const input={date:'2099-12-20',janeColor:'cream',lukeColor:'brown',id:'test-id'};
+beforeEach(()=>{delete process.env.REACT_APP_SUPABASE_URL;delete process.env.REACT_APP_SUPABASE_PUBLISHABLE_KEY;window.location.hash='';global.fetch=jest.fn();AbortSignal.timeout=jest.fn(()=>undefined);});
+afterEach(()=>jest.useRealTimers());
+test('uses tomorrow in Manila even near UTC midnight',()=>{jest.useFakeTimers().setSystemTime(new Date('2026-10-28T17:00:00Z'));expect(tomorrowManila()).toBe('2026-10-30');});
+test('does not pretend to save with no backend',async()=>{await expect(saveResponse(input)).rejects.toThrow('Wala pa na-connect');expect(fetch).not.toHaveBeenCalled();});
+test('requires the private invitation link',async()=>{process.env.REACT_APP_SUPABASE_URL='https://test.supabase.co';process.env.REACT_APP_SUPABASE_PUBLISHABLE_KEY='public-key';await expect(saveResponse(input)).rejects.toThrow('private invitation link');expect(fetch).not.toHaveBeenCalled();});
+test('sends only the expected fields and propagates failed saves',async()=>{process.env.REACT_APP_SUPABASE_URL='https://test.supabase.co';process.env.REACT_APP_SUPABASE_PUBLISHABLE_KEY='public-key';window.location.hash='invite=private-test-token';fetch.mockResolvedValue({ok:false});await expect(saveResponse(input)).rejects.toThrow('Wala pa na-save');expect(fetch).toHaveBeenCalledWith('https://test.supabase.co/functions/v1/submit-rsvp',expect.objectContaining({method:'POST',body:JSON.stringify({invitation_token:'private-test-token',response_id:'test-id',chosen_date:'2099-12-20',jane_color:'cream',luke_color:'brown'})}));});

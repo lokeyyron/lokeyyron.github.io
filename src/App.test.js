@@ -1,8 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import App from './App';
-
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
-});
+import {saveResponse} from './api';
+jest.mock('./api',()=>({...jest.requireActual('./api'),saveResponse:jest.fn()}));
+beforeEach(()=>{jest.clearAllMocks();Object.defineProperty(global,'crypto',{configurable:true,value:{randomUUID:()=> '00000000-0000-4000-8000-000000000001'}});});
+function reachPlan(){fireEvent.click(screen.getByText('Sige, let’s try'));fireEvent.click(screen.getByLabelText('Shade 5'));fireEvent.click(screen.getByLabelText('Shade 7'));fireEvent.click(screen.getByLabelText('Open the envelope'));fireEvent.click(screen.getByText('Oo, let’s go'));}
+test('disguises the invitation until the game is complete',()=>{render(<App/>);expect(screen.queryByText(/Will you go on/)).not.toBeInTheDocument();fireEvent.click(screen.getByText('Sige, let’s try'));fireEvent.click(screen.getByLabelText('Shade 1'));expect(screen.getByRole('status')).toHaveTextContent('Try another shade');fireEvent.click(screen.getByLabelText('Shade 5'));fireEvent.click(screen.getByLabelText('Shade 7'));fireEvent.click(screen.getByLabelText('Open the envelope'));expect(screen.getByText(/date with me/)).toBeInTheDocument();});
+test('saves the chosen date and both colors before showing confirmation',async()=>{saveResponse.mockResolvedValue();render(<App/>);reachPlan();fireEvent.change(screen.getByLabelText('WHEN ARE YOU FREE?'),{target:{value:'2099-12-20'}});fireEvent.click(screen.getByLabelText('Jane: sage'));fireEvent.click(screen.getByText('It’s a date'));expect(await screen.findByText(/Na-save na imong choices/)).toBeInTheDocument();expect(saveResponse).toHaveBeenCalledWith(expect.objectContaining({date:'2099-12-20',janeColor:'sage',lukeColor:'brown'}));expect(screen.getByText('4:30 PM')).toBeInTheDocument();});
+test('failed saves retain choices and never show success',async()=>{saveResponse.mockRejectedValue(new Error('Offline. Try again.'));render(<App/>);reachPlan();fireEvent.change(screen.getByLabelText('WHEN ARE YOU FREE?'),{target:{value:'2099-12-20'}});fireEvent.click(screen.getByText('It’s a date'));expect(await screen.findByRole('alert')).toHaveTextContent('Offline');expect(screen.queryByText(/Na-save na imong choices/)).not.toBeInTheDocument();expect(screen.getByLabelText('WHEN ARE YOU FREE?')).toHaveValue('2099-12-20');});
+test('lets Jane take time without submitting anything',()=>{render(<App/>);fireEvent.click(screen.getByText('Sige, let’s try'));fireEvent.click(screen.getByText('Need a shortcut? ↗'));fireEvent.click(screen.getByLabelText('Open the envelope'));fireEvent.click(screen.getByText('Huna-huna sa ko'));expect(screen.getByText(/No pressure/)).toBeInTheDocument();expect(saveResponse).not.toHaveBeenCalled();});

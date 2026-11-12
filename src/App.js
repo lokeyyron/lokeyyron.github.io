@@ -1,39 +1,57 @@
 import {useEffect, useRef, useState} from 'react';
-import {COLORS, tomorrowManila, saveResponse} from './api';
 import './App.css';
 
-function Shirt({color}) {return <svg viewBox="0 0 140 150" aria-hidden="true"><path d="M45 15 12 38l17 30 15-8v76h52V60l15 8 17-30-33-23c-4 17-45 17-50 0Z" fill={color} stroke="currentColor" strokeWidth="1.2"/><path d="M45 15c3 27 47 27 50 0M48 128h44" fill="none" stroke="currentColor" strokeWidth="1" opacity=".35"/></svg>}
-function Swatches({person,value,onChange}) {return <fieldset className="wardrobe"><legend>{person}</legend><Shirt color={COLORS[value]}/><div className="swatches">{Object.entries(COLORS).map(([name,color])=><button key={name} type="button" aria-label={`${person}: ${name}`} aria-pressed={value===name} style={{'--swatch':color}} onClick={()=>onChange(name)}>{value===name?'✓':''}</button>)}</div><span className="color-name">{value}</span></fieldset>}
-function dateLabel(date) {return new Date(`${date}T12:00:00+08:00`).toLocaleDateString('en-US',{timeZone:'Asia/Manila',weekday:'long',month:'long',day:'numeric',year:'numeric'});}
-export default function App() {
-  const [scene,setScene]=useState('intro');
-  const [round,setRound]=useState(0);
-  const [hint,setHint]=useState('');
-
-  const [date,setDate]=useState('');
-  const [janeColor,setJaneColor]=useState('cream');
-  const [lukeColor,setLukeColor]=useState('brown');
-  const [busy,setBusy]=useState(false);
-  const [error,setError]=useState('');
-  const [copied,setCopied]=useState(false);
-  const heading=useRef(null);
-  const requestId=useRef(null);
-
-  useEffect(()=>{heading.current?.focus();},[scene]);
-  useEffect(()=>{requestId.current=null;},[date,janeColor,lukeColor]);
-  function next(s){setScene(s);}
-  function pick(i){if(i!==[4,6][round]){setHint('Duol na. Try another shade.');return;}setHint('');if(round===0)setRound(1);else setScene('envelope');}
-  async function submit(e){e.preventDefault();if(busy)return;setError('');setBusy(true);requestId.current ||= crypto.randomUUID();try{await saveResponse({date,janeColor,lukeColor,id:requestId.current});next('ticket');}catch(err){setError(err.name==='TimeoutError'?'Hinay ang connection. Try again—your choices are still here.':err.message);}finally{setBusy(false);}}
-  async function copy(){try{await navigator.clipboard.writeText(`It's a date, Luke! ${dateLabel(date)}. Pickup: 4:30 PM (Philippine time). Jane: ${janeColor}. Luke: ${lukeColor}. Venue: surprise!`);setCopied(true);}catch{setCopied(false);setError('Please take a screenshot of your ticket instead.');}}
-  return <div className={`app scene-${scene}`}>
-    <main>
-    {scene==='intro'&&<section className="intro enter"><div className="intro-copy"><h1 ref={heading} tabIndex="-1">Got an eye<br/>for <em>color?</em></h1><p className="description">A tiny test for your eyes.<br/>Three rounds. One little discovery.</p><button className="primary" onClick={()=>next('game')}>Sige, let’s try <span>↗</span></button></div><div className="color-art" aria-hidden="true"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="sample sample-one"></div><div className="sample sample-two"></div><div className="sample sample-three"></div><span className="art-note">look a little closer.</span></div></section>}
-    {scene==='game'&&<section className="game enter"><h1 ref={heading} tabIndex="-1">One’s a little <em>different.</em></h1><p className="description">Asa ang lahi? Tap the shade that stands out.</p><div className={`tile-grid round-${round}`} key={round}>{Array.from({length:9},(_,i)=><button key={i} className={i===[4,6][round]?'odd':''} aria-label={`Shade ${i+1}`} onClick={()=>pick(i)}/>)}</div><div className="game-bottom"><p role="status">{hint||'Trust your eyes.'}</p><button className="text-button" onClick={()=>next('envelope')}>Need a shortcut? ↗</button></div></section>}
-    {scene==='envelope'&&<section className="reveal enter"><h1 ref={heading} tabIndex="-1">Wait. <em>Naay twist.</em></h1><p className="description">This last one is a little more personal.</p><button className="envelope" onClick={()=>next('ask')} aria-label="Open the envelope"><span className="envelope-paper">for you.</span><span className="envelope-flap"/><span className="seal">J</span></button><p className="micro">TAP TO OPEN</p></section>}
-    {scene==='ask'&&<section className="ask enter"><p className="confession">Okay, Jane. Dili jud ni color test.<br/>Nangita ra ko’g way to ask you this.</p><h1 ref={heading} tabIndex="-1">Will you go on<br/>a <em>date with me?</em></h1><p className="description">Secret sa ang place. Ako na bahala.<br/>Sundoon tika at <strong>4:30 PM.</strong><br/>Ikaw pili sa date and sa colors nato.</p><div className="ask-actions"><button className="primary" onClick={()=>next('plan')}>Oo, let’s go <span>↗</span></button><button className="text-button" onClick={()=>next('later')}>Huna-huna sa ko</button></div><p className="signature">— Luke <span>♡</span></p></section>}
-    {scene==='later'&&<section className="reveal enter"><h1 ref={heading} tabIndex="-1">Take your <em>time.</em></h1><p className="description">Okay ra jud. No pressure.<br/>You can come back whenever you feel like it.</p><button className="text-button" onClick={()=>next('ask')}>← Back to the note</button></section>}
-    {scene==='plan'&&<section className="plan enter"><div className="plan-heading"><h1 ref={heading} tabIndex="-1">Your date.<br/><em>Our colors.</em></h1><p className="description">Ikaw pili. I’ll take care of the rest.</p></div><form onSubmit={submit}><div className="date-row"><label htmlFor="date"><span className="field-label">WHEN ARE YOU FREE?</span><input id="date" type="date" required min={tomorrowManila()} value={date} onChange={e=>setDate(e.target.value)}/></label><div className="pickup"><span className="field-label">PICKUP, ALWAYS</span><strong>4:30 <small>PM</small></strong><span>Philippine time · Sundoon tika.</span></div></div><div className="outfit-heading"><span className="field-label">WHAT SHALL WE WEAR?</span><p>Match ta? Or mix it up.</p></div><div className="outfits"><Swatches person="Jane" value={janeColor} onChange={setJaneColor}/><span className="ampersand">&</span><Swatches person="Luke" value={lukeColor} onChange={setLukeColor}/></div><div className="secret-note"><span>↗</span><div><strong>The destination? Secret sa.</strong><p>Just bring yourself. Ako na bahala sa rest.</p></div></div>{error&&<p className="error" role="alert">{error}</p>}<button className="primary submit" disabled={busy}>{busy?'Sending your choices…':'It’s a date'}<span>↗</span></button><button type="button" className="text-button" onClick={()=>next('ask')}>← Back to the note</button></form></section>}
-    {scene==='ticket'&&<section className="done enter"><div className="confetti" aria-hidden="true">{Array.from({length:18},(_,i)=><i key={i} style={{'--i':i,'--c':Object.values(COLORS)[i%7]}}/>)}</div><h1 ref={heading} tabIndex="-1">See you, <em>Jane.</em></h1><article className="ticket"><div className="ticket-top"><span>ADMIT TWO</span><span>♡</span></div><h2>You + me.</h2><p className="ticket-date">{dateLabel(date)}</p><div className="ticket-details"><div><span>PICKUP</span><strong>4:30 PM</strong><small>I'll pick you up</small></div><div><span>DESTINATION</span><strong>A little surprise.</strong><small>Secret sa for now</small></div></div><div className="ticket-colors"><span><i style={{background:COLORS[janeColor]}}/>Jane / {janeColor}</span><span><i style={{background:COLORS[lukeColor]}}/>Luke / {lukeColor}</span></div><div className="ticket-bottom">CAN'T WAIT. SEE YOU!</div></article><p className="description">Na-save na imong choices.<br/>Can’t wait. — Luke</p><button className="text-button" onClick={copy}>{copied?'Copied ✓':'Copy our plan ↗'}</button>{error&&<p role="alert">{error}</p>}<p className="micro">OR SCREENSHOT THIS LITTLE KEEPSAKE.</p></section>}
-    </main>
-  </div>;
+const photos = [
+  {id:1, caption:'Our little dinner date.', alt:'Luke and Jane together at dinner with her bouquet'},
+  {id:3, caption:'Kaning smile nimo.', alt:'Jane covering her smile beside Luke at the table'},
+  {id:4, caption:'The little in-between moments.', alt:'Luke and Jane looking out beside the restaurant window'},
+  {id:2, caption:'My favorite kind of company.', alt:'Jane resting her head against Luke under the night sky'},
+  {id:5, caption:'Us, above the city lights.', alt:'Luke and Jane holding flowers on the balcony'},
+  {id:6, caption:'A view worth remembering.', alt:'Luke with his arm around Jane as they look over the city'}
+];
+// Luke's own letter goes here when it is ready. No generated letter is shown.
+const letter = '';
+function App(){
+  const [selected,setSelected] = useState(null);
+  const [opened,setOpened] = useState(false);
+  const dialog = useRef(null);
+  useEffect(()=>{
+    if(selected === null) return;
+    const previous = document.activeElement;
+    dialog.current.showModal();
+    const old = document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    return ()=>{document.body.style.overflow=old; previous?.focus();};
+  },[selected]);
+  const close=()=>{dialog.current?.close();setSelected(null);};
+  return <main>
+    <section className="cover" aria-labelledby="title">
+      <div className="cover-copy"><p className="dedication">For Jane, from Luke</p>
+        <h1 id="title">Some nights<br/>stay <em>with you.</em></h1>
+        <p className="intro">Salamat sa time, Jane.<br/>Still smiling about our little date.</p>
+        <a className="album-link" href="#memories">Balikan nato? <span aria-hidden="true">↘</span></a>
+      </div>
+      <div className="cover-prints" aria-hidden="true">
+        <div className="print behind"><img src="/photos/memory-3.jpg" alt=""/></div>
+        <div className="print front"><img src="/photos/memory-5.jpg" alt=""/><span>you, me & the city lights ♡</span></div>
+      </div>
+      <div className="cover-star" aria-hidden="true">✳</div>
+    </section>
+    <section id="memories" className="memories" aria-labelledby="memories-title">
+      <div className="album-heading"><div><p className="eyebrow">Kept close</p><h2 id="memories-title">Our little <em>collection.</em></h2></div><p>Good company. Little laughs.<br/>Mga moments nga worth balikan.</p></div>
+      <div className="photo-grid">{photos.map((photo,index)=><figure key={photo.id} className={`memory memory-${index}`}>
+        <button onClick={()=>setSelected(index)} aria-label={`Open photo: ${photo.caption}`}><img loading="lazy" src={`/photos/memory-${photo.id}.jpg`} alt={photo.alt}/><span className="zoom-hint" aria-hidden="true">take a closer look ↗</span></button>
+        <figcaption>{photo.caption}</figcaption>
+      </figure>)}</div>
+      <p className="album-end">Same night. Six little reasons to smile. <span aria-hidden="true">♡</span></p>
+    </section>
+    {letter && <section className="letter-section"><button className="envelope" aria-expanded={opened} onClick={()=>setOpened(!opened)}><span>For you, Jane</span><span>{opened ? 'Fold the letter' : 'Open my little note'} ♡</span></button>{opened && <article className="letter"><h2>Dear Jane,</h2><p>{letter}</p><p>Luke</p></article>}</section>}
+    <footer><span>Salamat, Jane.</span><p>For making this a memory I get to keep.</p><span className="signature">Luke ♡</span></footer>
+    {selected !== null && <dialog ref={dialog} className="lightbox" aria-label="Photo album" onCancel={close} onClick={e=>{if(e.target===e.currentTarget)close();}} onKeyDown={e=>{if(e.key==='ArrowRight')setSelected((selected+1)%photos.length);if(e.key==='ArrowLeft')setSelected((selected+photos.length-1)%photos.length);}}>
+      <button className="close" onClick={close} autoFocus aria-label="Close photo">×</button>
+      <img src={`/photos/memory-${photos[selected].id}.jpg`} alt={photos[selected].alt}/>
+      <div className="lightbox-controls"><button aria-label="Previous photo" onClick={()=>setSelected((selected+photos.length-1)%photos.length)}>←</button><p>{photos[selected].caption}</p><button aria-label="Next photo" onClick={()=>setSelected((selected+1)%photos.length)}>→</button></div>
+    </dialog>}
+  </main>;
 }
+export default App;

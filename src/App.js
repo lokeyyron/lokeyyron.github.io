@@ -9,8 +9,11 @@ const photos = [
   {id:5, caption:'Us, above the city lights.', alt:'Luke and Jane holding flowers on the balcony'},
   {id:6, caption:'A view worth remembering.', alt:'Luke with his arm around Jane as they look over the city'}
 ];
-// Luke's own letter goes here when it is ready. No generated letter is shown.
-const letter = '';
+const letter = `I just wanna write this for gratitude. I am very happy jud satong date and I really wanna thank you for making it happen. Very pretty jud kayka and I really love your dress. Sorry gubot kayni na message kay gi write ra nako akong thoughts (para mas genuine?).
+
+Pero real, I am always here and maybe dili nako ma show always pero dili nimo need mag worry nako. Dili jud ko kapoyon makig talk nimo and sometimes mag think rako na maybe need nimog space that’s why sometimes maybe ma feel nimo na dry kayko or walay gana.
+
+If you ever need someone to lean on, cry on, talk with, or even just someone to be with in silence kay naa rajud ko. You have me through your ups and downs. Proud kayko nimo, strong jud kayka. I know lahi lahi tag ginadala dala pero proud jud kayko nimo. Padayon lang!`;
 function App(){
   const [selected,setSelected] = useState(null);
   const [opened,setOpened] = useState(false);
@@ -45,7 +48,7 @@ function App(){
       </figure>)}</div>
       <p className="album-end">Same night. Six little reasons to smile. <span aria-hidden="true">♡</span></p>
     </section>
-    {letter && <section className="letter-section"><button className="envelope" aria-expanded={opened} onClick={()=>setOpened(!opened)}><span>For you, Jane</span><span>{opened ? 'Fold the letter' : 'Open my little note'} ♡</span></button>{opened && <article className="letter"><h2>Dear Jane,</h2><p>{letter}</p><p>Luke</p></article>}</section>}
+    {letter && <section className="letter-section"><button className="envelope" aria-expanded={opened} onClick={()=>setOpened(!opened)}><span>For you, Jane</span><span>{opened ? 'Fold the letter' : 'Open my little note'} ♡</span></button>{opened && <article className="letter"><h2>Hi Buseng,</h2><p>{letter}</p><p>Luke</p></article>}</section>}
     <footer><span>Salamat, Jane.</span><p>For making this a memory I get to keep.</p><span className="signature">Luke ♡</span></footer>
     {selected !== null && <dialog ref={dialog} className="lightbox" aria-label="Photo album" onCancel={close} onClick={e=>{if(e.target===e.currentTarget)close();}} onKeyDown={e=>{if(e.key==='ArrowRight')setSelected((selected+1)%photos.length);if(e.key==='ArrowLeft')setSelected((selected+photos.length-1)%photos.length);}}>
       <button className="close" onClick={close} autoFocus aria-label="Close photo">×</button>
